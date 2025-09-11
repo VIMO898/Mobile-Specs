@@ -4,10 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/device_overview_model.dart';
-import '../../providers/repositories/gsmarena_repo_provider.dart';
 
 class HomeDeviceGridViewWithTabs extends ConsumerStatefulWidget {
-  const HomeDeviceGridViewWithTabs({super.key});
+  final bool isLoading;
+  final List<List<DeviceOverviewModel>>? categorizedDevices;
+  const HomeDeviceGridViewWithTabs({
+    super.key,
+    this.isLoading = false,
+    required this.categorizedDevices,
+  });
 
   @override
   ConsumerState<HomeDeviceGridViewWithTabs> createState() =>
@@ -17,28 +22,21 @@ class HomeDeviceGridViewWithTabs extends ConsumerStatefulWidget {
 class _HomeDeviceGridViewState extends ConsumerState<HomeDeviceGridViewWithTabs>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late List<Future> _devicesFutures;
   @override
   void initState() {
     super.initState();
-    final gsmArenaRepo = ref.read(gsmarenRepoProvider);
-    _devicesFutures = [
-      gsmArenaRepo.getLatestDevicesOverview(),
-      gsmArenaRepo.getPopularDevicesOverview(),
-      gsmArenaRepo.getRumouredDevicesOverview(),
-    ];
-    _tabController = TabController(length: _devicesFutures.length, vsync: this);
-    _tabController.addListener(_handleUpdateWidget);
+    _tabController = TabController(length: 3, vsync: this);
+    // _tabController.addListener(_handleUpdateWidget);
   }
 
   @override
   void dispose() {
     super.dispose();
-    _tabController.removeListener(_handleUpdateWidget);
+    // _tabController.removeListener(_handleUpdateWidget);
     _tabController.dispose();
   }
 
-  void _handleUpdateWidget() => setState(() {});
+  // void _handleUpdateWidget() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -51,30 +49,12 @@ class _HomeDeviceGridViewState extends ConsumerState<HomeDeviceGridViewWithTabs>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: List.generate(_devicesFutures.length, (index) {
-                final currFuture = _devicesFutures[index];
-                return FutureBuilder(
-                  future: currFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return const Padding(
-                        padding: EdgeInsets.only(top: 65),
-                        child: Text(
-                          'Couldn\'t load the data!',
-                          textAlign: TextAlign.center,
-                        ),
-                      );
-                    }
-                    final devices = snapshot.data != null
-                        ? List<DeviceOverviewModel>.from(snapshot.data)
-                        : null;
-                    return DeviceGridView(
-                      physics: NeverScrollableScrollPhysics(),
-                      isLoading:
-                          snapshot.connectionState == ConnectionState.waiting,
-                      devices: devices,
-                    );
-                  },
+              children: List.generate(3, (index) {
+                final currDevices = widget.categorizedDevices?[index];
+                return DeviceGridView(
+                  physics: NeverScrollableScrollPhysics(),
+                  isLoading: widget.isLoading,
+                  devices: currDevices,
                 );
               }),
             ),

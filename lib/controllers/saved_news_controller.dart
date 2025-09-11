@@ -19,7 +19,7 @@ class SavedNewsController extends StateNotifier<List<UserActivityEntryModel>> {
     });
   }
 
-  Future<List<NewsModel>> getSavedNewsArticle() async {
+  Future<List<NewsModel>> getSavedNewsArticles() async {
     final savedNewsIds = state.map((n) => n.id).toList();
     return repo.getListOfSavedNews(savedNewsIds);
   }
@@ -30,11 +30,11 @@ class SavedNewsController extends StateNotifier<List<UserActivityEntryModel>> {
 
   Future<void> saveNewsArticle(NewsModel news) async {
     final newsExists = state.any((entry) {
-      final newsId = news.overview.link.split('-').last.replaceAll('.php', '');
+      final newsId = news.overview.id;
       return entry.id == newsId;
     });
     if (newsExists) return;
-    final newsId = news.overview.link.split('-').last.replaceAll('.php', '');
+    final newsId = news.overview.id;
     final currTimestamp = DateTime.now().millisecondsSinceEpoch;
 
     final newsEntry = UserActivityEntryModel(

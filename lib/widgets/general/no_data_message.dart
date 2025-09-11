@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +10,7 @@ class NoDataMessage extends ConsumerWidget {
   final EdgeInsets padding;
   // final Color? iconColor;
   final String? localImgSrc;
+  final VoidCallback? onRefresh;
   const NoDataMessage({
     super.key,
     this.padding = const EdgeInsets.fromLTRB(20, 0, 20, 40),
@@ -15,6 +18,7 @@ class NoDataMessage extends ConsumerWidget {
     required this.subtitle,
     this.icon,
     this.localImgSrc,
+    this.onRefresh,
   });
 
   @override
@@ -41,6 +45,12 @@ class NoDataMessage extends ConsumerWidget {
             textAlign: TextAlign.center,
             style: textTheme.titleSmall,
           ),
+          if (onRefresh != null)
+            TextButton.icon(
+              onPressed: onRefresh,
+              icon: Icon(Icons.refresh),
+              label: Text('Reload'),
+            ),
         ],
       ),
     );

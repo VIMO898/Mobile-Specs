@@ -25,34 +25,17 @@ class NewsCardSkeleton extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              // news thumbnail
-              Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Container(
-                    height: 220,
-                    width: double.infinity,
-                    color: baseColor,
-                  ),
-                ),
+          Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                height: 220,
+                width: double.infinity,
+                color: baseColor,
               ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 6),
           // title

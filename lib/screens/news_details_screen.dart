@@ -16,10 +16,12 @@ import '../skeletons/screens/news_details_screen_skeleton.dart';
 class NewsDetailsScreen extends ConsumerStatefulWidget {
   final NewsOverviewModel newsOverview;
   final DetailedNewsModel? newsDetails;
+  final void Function(bool saved)? onToggleNewsArticleSave;
   const NewsDetailsScreen({
     super.key,
     required this.newsOverview,
     this.newsDetails,
+    this.onToggleNewsArticleSave,
   });
 
   @override
@@ -67,14 +69,17 @@ class _NewsDetailsScreenState extends ConsumerState<NewsDetailsScreen> {
             .saveNewsArticle(
               NewsModel(overview: widget.newsOverview, details: _detailedNews!),
             );
+        if (widget.onToggleNewsArticleSave != null) {
+          widget.onToggleNewsArticleSave!(false);
+        }
       } else {
-        final newsId = widget.newsOverview.link
-            .split('-')
-            .last
-            .replaceAll('.php', '');
+        final newsId = widget.newsOverview.id;
         await ref
             .read(savedNewsControllerProvider.notifier)
             .removeNewsArticle(newsId);
+        if (widget.onToggleNewsArticleSave != null) {
+          widget.onToggleNewsArticleSave!(true);
+        }
       }
       setState(() => _newsSaveToggleLoading = false);
     } on CustomException {
@@ -95,10 +100,7 @@ class _NewsDetailsScreenState extends ConsumerState<NewsDetailsScreen> {
     final writtenBy = _detailedNews?.reviewer;
     final description = _detailedNews?.description;
     final savedNewsArticleEntries = ref.watch(savedNewsControllerProvider);
-    final newsId = widget.newsOverview.link
-        .split('-')
-        .last
-        .replaceAll('.php', '');
+    final newsId = widget.newsOverview.id;
     final isCurrNewsSaved = savedNewsArticleEntries.any((n) => n.id == newsId);
     log(savedNewsArticleEntries.toString());
     return Scaffold(
@@ -127,45 +129,49 @@ class _NewsDetailsScreenState extends ConsumerState<NewsDetailsScreen> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const NewsDetailsScreenSkeleton()
-          : _exception != null
-          ? NoDataMessage(
-              title: 'Having Trouble',
-              subtitle:
-                  'To load the details of this news. Please check your internet connection',
-            )
-          : Padding(
-              padding: const EdgeInsets.all(8),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildNetworkImg(
-                      url: imgUrl,
-                      padding: const EdgeInsets.only(bottom: 6),
-                    ),
-                    Text(
-                      title,
-                      style: textTheme.titleLarge?.copyWith(
-                        // fontSize: 20,
-                        fontWeight: FontWeight.w600,
+      body: RefreshIndicator(
+        onRefresh: _loadDetailedNews,
+        child: _isLoading
+            ? const NewsDetailsScreenSkeleton()
+            : _exception != null
+            ? NoDataMessage(
+                title: 'Having Trouble',
+                subtitle:
+                    'To load the details of this news. Please check your internet connection',
+                onRefresh: _loadDetailedNews,
+              )
+            : Padding(
+                padding: const EdgeInsets.all(8),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildNetworkImg(
+                        url: imgUrl,
+                        padding: const EdgeInsets.only(bottom: 6),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      writtenBy!,
-                      style: TextStyle(
-                        // color: Colors.grey.shade500,
-                        fontSize: 16,
+                      Text(
+                        title,
+                        style: textTheme.titleLarge?.copyWith(
+                          // fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(description!, style: textTheme.titleMedium),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        writtenBy!,
+                        style: TextStyle(
+                          // color: Colors.grey.shade500,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(description!, style: textTheme.titleMedium),
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 

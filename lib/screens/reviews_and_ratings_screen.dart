@@ -39,6 +39,7 @@ class _ReviewsAndRatingsScreenState
 
   Future<void> _loadData() async {
     try {
+      _exception = null;
       setState(() => _isLoading = true);
       final user = ref.read(authControllerProvider);
       final reviewsRepo = ref.read(reviewsRepositoryProvider);
@@ -86,63 +87,75 @@ class _ReviewsAndRatingsScreenState
 
       body: _isLoading
           ? UserReviewListViewSkeleton()
-          : _exception != null
-          ? NoDataMessage(
-              icon: Icons.priority_high_outlined,
-              title: 'Error',
-              subtitle: _exception!.message,
-            )
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Container(
-                      padding: const EdgeInsets.only(top: 14),
-                      height: 156,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: AverageRatings(
-                              textColor: textColor,
-                              totalReviewerCount: totalReviewsCount,
-                              averageRating: findReviewsAverage(reviews),
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: _exception != null
+                  ? NoDataMessage(
+                      icon: Icons.priority_high_outlined,
+                      title: 'Error',
+                      subtitle: _exception!.message,
+                      onRefresh: _loadData,
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: CustomScrollView(
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: Container(
+                              padding: const EdgeInsets.only(top: 14),
+                              height: 156,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: AverageRatings(
+                                      textColor: textColor,
+                                      totalReviewerCount: totalReviewsCount,
+                                      averageRating: findReviewsAverage(
+                                        reviews,
+                                      ),
+                                    ),
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: VerticalDivider(
+                                      indent: 12,
+                                      endIndent: 12,
+                                    ),
+                                  ),
+                                  RatingProgressListView(
+                                    color: textColor,
+                                    reviewsWithRatings: mappedReviewsByRatings
+                                        .map(
+                                          (key, value) =>
+                                              MapEntry(key, value.length),
+                                        ),
+                                    totalReviewCount: totalReviewsCount,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: VerticalDivider(indent: 12, endIndent: 12),
+                          WriteReview(
+                            deviceOverview: widget.device,
+                            submittedReview: _myReview?.review,
+                            onSuccessfulReviewSubmission:
+                                _handleMyReviewChanged,
                           ),
-                          RatingProgressListView(
-                            color: textColor,
-                            reviewsWithRatings: mappedReviewsByRatings.map(
-                              (key, value) => MapEntry(key, value.length),
+                          SliverPadding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                childCount: totalReviewsCount,
+                                (context, index) {
+                                  final review = totalReviews[index]!;
+                                  return UserReviewCard(review);
+                                },
+                              ),
                             ),
-                            totalReviewCount: totalReviewsCount,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  WriteReview(
-                    deviceOverview: widget.device,
-                    submittedReview: _myReview?.review,
-                    onSuccessfulReviewSubmission: _handleMyReviewChanged,
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        childCount: totalReviewsCount,
-                        (context, index) {
-                          final review = totalReviews[index]!;
-                          return UserReviewCard(review);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
     );
   }

@@ -17,9 +17,11 @@ import '../models/device_overview_model.dart';
 
 abstract class BaseGsmarenaRepostiory {
   Future<List<DeviceOverviewModel>> getLatestDevicesOverview([
+    bool refreshData = false,
     int maxLength = 14,
   ]);
   Future<List<DeviceOverviewModel>> getPopularDevicesOverview([
+    bool refreshData = false,
     int maxLength = 9,
   ]);
   Future<List<DeviceOverviewModel>> getRumouredDevicesOverview([
@@ -34,11 +36,13 @@ abstract class BaseGsmarenaRepostiory {
     int? maxLength,
   ]);
   Future<DeviceOverviewModel?> getOneDeviceOverviewByName(String deviceName);
-  Future<List<BrandModel>> getBrandsList();
+  Future<List<BrandModel>> getBrandsList([bool refreshData = false]);
   Future<List<BrandModel>> getAllBrandsList();
   Future<DeviceSpecsModel> getDeviceSpecs(String urlEndpoint);
   Future<DevicesComparisonModel> compareDevices(List<String> ids);
-  Future<List<TwoDeviceComparisonModel>> getPopularComparisons();
+  Future<List<TwoDeviceComparisonModel>> getPopularComparisons([
+    bool refreshData = false,
+  ]);
   Future<List<NewsOverviewModel>> getTechNews();
   Future<DetailedNewsModel> getDetailedNews(String urlEndpoint);
 }
@@ -113,9 +117,10 @@ class GsmarenaRepository implements BaseGsmarenaRepostiory {
 
   @override
   Future<List<DeviceOverviewModel>> getLatestDevicesOverview([
+    bool refreshData = false,
     int maxLength = 14,
   ]) => _safe(() async {
-    final soup = _gsmarenaHomepage ?? await _getGsmarenaHomepage();
+    final soup = _gsmarenaHomepage ?? await _getGsmarenaHomepage(refreshData);
     final selector = soup
         .findAll('a', selector: '.module-latest a')
         .take(maxLength)
@@ -125,9 +130,10 @@ class GsmarenaRepository implements BaseGsmarenaRepostiory {
 
   @override
   Future<List<DeviceOverviewModel>> getPopularDevicesOverview([
+    bool refreshData = false,
     int maxLength = 9,
   ]) => _safe(() async {
-    final soup = _gsmarenaHomepage ?? await _scrapWebpage(_baseUrl);
+    final soup = _gsmarenaHomepage ?? await _getGsmarenaHomepage(refreshData);
     final popularDeviceModule = soup.findAll(
       'dev',
       selector: '.module-latest',
@@ -268,18 +274,20 @@ class GsmarenaRepository implements BaseGsmarenaRepostiory {
   });
 
   @override
-  Future<List<BrandModel>> getBrandsList() => _safe(() async {
-    final soup = _gsmarenaHomepage ?? await _scrapWebpage(_baseUrl);
-    final brands = soup.findAll('a', selector: '.brandmenu-v2 li a').map((
-      anchor,
-    ) {
-      final href = anchor.getAttrValue('href');
-      final name = anchor.text;
-      final imgUrl = 'https://logo.clearbit.com/$name.com';
-      return BrandModel(name: name, link: href!, imgUrl: imgUrl);
-    }).toList();
-    return brands;
-  });
+  Future<List<BrandModel>> getBrandsList([bool refreshData = false]) => _safe(
+    () async {
+      final soup = _gsmarenaHomepage ?? await _getGsmarenaHomepage(refreshData);
+      final brands = soup.findAll('a', selector: '.brandmenu-v2 li a').map((
+        anchor,
+      ) {
+        final href = anchor.getAttrValue('href');
+        final name = anchor.text;
+        final imgUrl = 'https://logo.clearbit.com/$name.com';
+        return BrandModel(name: name, link: href!, imgUrl: imgUrl);
+      }).toList();
+      return brands;
+    },
+  );
 
   @override
   Future<List<BrandModel>> getAllBrandsList() => _safe(() async {
@@ -460,10 +468,11 @@ class GsmarenaRepository implements BaseGsmarenaRepostiory {
   );
 
   @override
-  Future<List<TwoDeviceComparisonModel>>
-  getPopularComparisons() => _safe(() async {
+  Future<List<TwoDeviceComparisonModel>> getPopularComparisons([
+    bool refreshData = false,
+  ]) => _safe(() async {
     final List<TwoDeviceComparisonModel> comparisons = [];
-    final soup = _gsmarenaHomepage ?? await _scrapWebpage(_baseUrl);
+    final soup = _gsmarenaHomepage ?? await _getGsmarenaHomepage(refreshData);
     final popularComparisonModule = soup
         .findAll('div', selector: '.module.module-rankings.s3')
         .last;
@@ -507,7 +516,9 @@ class GsmarenaRepository implements BaseGsmarenaRepostiory {
       final uploadedTime = item
           .find('span', selector: '.meta-line > .meta-item-time')!
           .text;
+      final id = link.split('-').last.replaceAll('.php', '');
       return NewsOverviewModel(
+        id: id,
         title: title,
         subtitle: subtitle,
         imgUrl: imgUrl,

@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/news_overview_model.dart';
-import '../../providers/repositories/gsmarena_repo_provider.dart';
 import '../../providers/general/curr_tab_index_provider.dart';
 import '../../screens/news_details_screen.dart';
 import '../../utils/nav_helper.dart';
 import 'home_news_card.dart';
 
 class LatestNewsListViewBuilder extends ConsumerWidget {
-  const LatestNewsListViewBuilder({super.key});
+  final bool isLoading;
+  final List<NewsOverviewModel>? news;
+  const LatestNewsListViewBuilder({
+    super.key,
+    this.isLoading = false,
+    required this.news,
+  });
 
   void _navigateToNewsDetailScreen(
     BuildContext context,
@@ -26,7 +31,6 @@ class LatestNewsListViewBuilder extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    final newsOverviewFuture = ref.read(gsmarenRepoProvider).getTechNews();
     return Container(
       height: 230,
       color: theme.scaffoldBackgroundColor,
@@ -55,25 +59,16 @@ class LatestNewsListViewBuilder extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: FutureBuilder(
-              future: newsOverviewFuture,
-              builder: (context, snapshot) {
-                final isLoading =
-                    snapshot.connectionState == ConnectionState.waiting;
-                final news = snapshot.data;
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(6, 0, 6, 10),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: news?.length,
-                  itemBuilder: (context, index) {
-                    final currNews = news?[index];
-                    return HomeNewsCard(
-                      isLoading: isLoading,
-                      news: currNews,
-                      onTap: () =>
-                          _navigateToNewsDetailScreen(context, currNews!),
-                    );
-                  },
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(6, 0, 6, 10),
+              scrollDirection: Axis.horizontal,
+              itemCount: news?.length,
+              itemBuilder: (context, index) {
+                final currNews = news?[index];
+                return HomeNewsCard(
+                  isLoading: isLoading,
+                  news: currNews,
+                  onTap: () => _navigateToNewsDetailScreen(context, currNews!),
                 );
               },
             ),

@@ -5,6 +5,7 @@ import 'package:app/screens/device_full_specifications_screen.dart';
 import 'package:app/screens/search_screen.dart';
 import 'package:app/utils/dialog_helper.dart';
 import 'package:app/utils/nav_helper.dart';
+import 'package:app/utils/snack_bar_helper.dart';
 import 'package:app/widgets/brand_devices/brand_device_list_view.dart';
 import 'package:app/widgets/general/no_data_message.dart';
 import 'package:flutter/material.dart';
@@ -47,7 +48,7 @@ class _BrandPhonesScreenState extends ConsumerState<BrandDevicesScreen> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_scrollListener);
-    _getDevicesOverview(widget.link, _currPage);
+    _getDevicesOverview(_currPage);
   }
 
   @override
@@ -62,18 +63,20 @@ class _BrandPhonesScreenState extends ConsumerState<BrandDevicesScreen> {
         _scrollController.position.maxScrollExtent) {
       if (_currPage >= _totalPages) return;
       _currPage++;
-      _getDevicesOverview(widget.link, _currPage);
+      _getDevicesOverview(_currPage);
     }
   }
 
-  Future<void> _getDevicesOverview(String link, int page) async {
+  Future<void> _getDevicesOverview(int page) async {
+    final link = widget.link;
     // loading
+    _error = null;
     setState(() => _isLoading = true);
     try {
       // data
       final data = await ref
           .read(gsmarenRepoProvider)
-          .getBrandDevicesOverview(widget.link, page);
+          .getBrandDevicesOverview(link, page);
       if (_devicesOverview != null) {
         _devicesOverview = DevicesOverviewListModel(
           devices: [..._devicesOverview!.devices, ...data.devices],
@@ -92,11 +95,13 @@ class _BrandPhonesScreenState extends ConsumerState<BrandDevicesScreen> {
       // show error via dialog initial data is already loaded
       if (_currPage > 1) {
         setState(() => _isLoading = false);
-        DialogHelper.showErrorDialog(
+        SnackBarHelper.show(
           context,
-          title: 'Error',
-          message:
-              'Unable to load more devices.\nPlease check your internet connection.',
+          'Unable to load more devices',
+          action: SnackBarAction(
+            label: 'Reload',
+            onPressed: () => _getDevicesOverview(1),
+          ),
         );
         return;
       }
@@ -173,6 +178,12 @@ class _BrandPhonesScreenState extends ConsumerState<BrandDevicesScreen> {
     NavHelper.push(context, SearchScreen());
   }
 
+  Future<void> _reloadData() {
+    return _currLayout == DevicesLayout.list
+        ? _getDevicesWithDetaildedOverview()
+        : _getDevicesOverview(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -191,28 +202,32 @@ class _BrandPhonesScreenState extends ConsumerState<BrandDevicesScreen> {
       ),
       body:
           // initial error
-          _currPage == 1 && _error != null
-          ? NoDataMessage(
-              icon: Icons.error_outline,
-              title: 'Unable to Load Data',
-              subtitle:
-                  'Please check your internet connection to reload the data',
-            )
-          // display data in preferred layout
-          : _currLayout == DevicesLayout.list
-          ? BrandDeviceListView(
-              isLoading: _isLoading,
-              isBackdropLoading: _loadingLinkForGsmareanFullSpecs,
-              devicesWithDetailedOverview: _devicesWithDetailedOverview,
-              onTap: _getGsmarenaLinkForFullSpecs,
-            )
-          : BrandDevicesGrid(
-              scrollController: _scrollController,
-              devicesOverview: _devicesOverview,
-              currLayout: _currLayout,
-              isLoading: _currPage == 1 && _isLoading,
-              isLoadingMore: _isLoading,
-            ),
+          RefreshIndicator(
+            onRefresh: _reloadData,
+            child: _currPage == 1 && _error != null
+                ? NoDataMessage(
+                    icon: Icons.error_outline,
+                    title: 'Unable to Load Data',
+                    subtitle:
+                        'Please check your internet connection to reload the data',
+                    onRefresh: _reloadData,
+                  )
+                // display data in preferred layout
+                : _currLayout == DevicesLayout.list
+                ? BrandDeviceListView(
+                    isLoading: _isLoading,
+                    isBackdropLoading: _loadingLinkForGsmareanFullSpecs,
+                    devicesWithDetailedOverview: _devicesWithDetailedOverview,
+                    onTap: _getGsmarenaLinkForFullSpecs,
+                  )
+                : BrandDevicesGrid(
+                    scrollController: _scrollController,
+                    devicesOverview: _devicesOverview,
+                    currLayout: _currLayout,
+                    isLoading: _currPage == 1 && _isLoading,
+                    isLoadingMore: _isLoading && _currPage > 1,
+                  ),
+          ),
     );
   }
 }

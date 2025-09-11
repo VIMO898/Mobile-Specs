@@ -20,10 +20,10 @@ class _WishListScreenState extends ConsumerState<WishListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadWishlistInitially();
+    _loadWishlist();
   }
 
-  Future<void> _loadWishlistInitially() async {
+  Future<void> _loadWishlist() async {
     try {
       _exception = null;
       setState(() => _isLoading = true);
@@ -40,19 +40,23 @@ class _WishListScreenState extends ConsumerState<WishListScreen> {
   Widget build(BuildContext context) {
     final wishlistedDevices = ref.watch(deviceWishlistControllerProvider);
     return Scaffold(
-      body: _exception != null
-          ? NoDataMessage(
-              icon: Icons.error,
-              title: 'Error',
-              subtitle: _exception!.message,
-            )
-          : wishlistedDevices.isEmpty
-          ? _buildEmptyListMessage()
-          : DeviceGridView(
-              isLoading: _isLoading,
-              physics: BouncingScrollPhysics(),
-              devices: wishlistedDevices,
-            ),
+      body: RefreshIndicator(
+        onRefresh: _loadWishlist,
+        child: _exception != null
+            ? NoDataMessage(
+                icon: Icons.error,
+                title: 'Error',
+                subtitle: _exception!.message,
+                onRefresh: _loadWishlist,
+              )
+            : wishlistedDevices.isEmpty
+            ? _buildEmptyListMessage()
+            : DeviceGridView(
+                isLoading: _isLoading,
+                physics: BouncingScrollPhysics(),
+                devices: wishlistedDevices,
+              ),
+      ),
     );
   }
 

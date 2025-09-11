@@ -93,7 +93,7 @@ class SavedNewsRepository implements BaseSavedNewsRepository {
     try {
       final uid = user?.uid;
       if (uid == null) return;
-      final newsId = news.overview.link.split('-').last.replaceAll('.php', '');
+      final newsId = news.overview.id;
       await userActivityCollection.doc(uid).set({
         'savedNews': FieldValue.arrayUnion([newsEntry.toMap()]),
       }, SetOptions(merge: true));

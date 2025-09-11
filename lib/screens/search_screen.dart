@@ -46,10 +46,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _searchFieldController.dispose();
   }
 
-  Future<void> _handleSearchFieldChange(String query) async {
+  Future<void> _searchDevicesUsingQuery(String query) async {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 600), () async {
       try {
+        _error = null;
         setState(() => _isLoading = true);
         _searchedDevices = await ref
             .read(gsmarenRepoProvider)
@@ -88,26 +89,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         children: [
           SearchField(
             controller: _searchFieldController,
-            onChange: _handleSearchFieldChange,
+            onChange: _searchDevicesUsingQuery,
             onSubmit: _handleSearchFieldSubmit,
             onClear: _handleClearSearchField,
             onTapOutside: _unfocusSearchField,
           ),
           Expanded(
-            child: _error != null
-                ? _buildNetworkErrorMessage()
-                : _searchedDevices == null
-                ? _buildStartSearchingMessage()
-                : _searchedDevices != null && _searchedDevices!.isEmpty
-                ? _buildNoResultsFoundMessage()
-                : SearchedResults(
-                    isLoading: _isLoading,
-                    error: _error,
-                    devices: _searchedDevices,
-                    onViewMore: () =>
-                        _handleSearchFieldSubmit(_searchFieldController.text),
-                  ),
-            // : _buildDeviceGridView(),
+            child: RefreshIndicator(
+              onRefresh: () =>
+                  _searchDevicesUsingQuery(_searchFieldController.text),
+              child: _error != null
+                  ? _buildNetworkErrorMessage()
+                  : _searchedDevices == null
+                  ? _buildStartSearchingMessage()
+                  : _searchedDevices != null && _searchedDevices!.isEmpty
+                  ? _buildNoResultsFoundMessage()
+                  : SearchedResults(
+                      isLoading: _isLoading,
+                      error: _error,
+                      devices: _searchedDevices,
+                      onViewMore: () =>
+                          _handleSearchFieldSubmit(_searchFieldController.text),
+                    ),
+            ),
           ),
         ],
       ),
@@ -120,6 +124,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       icon: Icons.error_outline,
       title: 'Network Error',
       subtitle: 'Please make sure your internet connection is working',
+      onRefresh: () => _searchDevicesUsingQuery(_searchFieldController.text),
     );
   }
 

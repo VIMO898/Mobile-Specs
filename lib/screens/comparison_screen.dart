@@ -30,10 +30,15 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
     _scrollController = ScrollController();
     _scrollController.addListener(_handleScrollPosChange);
     // _deviceOverviews = ref.read(deviceComparisonControllerProvider);
+    _setCompareDevicesFuture();
+  }
+
+  Future<void> _setCompareDevicesFuture([bool refresh = false]) async {
     final selectedDeviceIds = _deviceOverviews.map((d) => d.id).toList();
     _compareDevicesFuture = ref
         .read(gsmarenRepoProvider)
         .compareDevices(widget.comparedDevices ?? selectedDeviceIds);
+    if (refresh) setState(() {});
   }
 
   @override
@@ -66,39 +71,43 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
             ? ComparedDeviceBottomAppbar(_deviceOverviews)
             : null,
       ),
-      body: FutureBuilder(
-        future: _compareDevicesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            log(snapshot.error.toString());
-            return const NoDataMessage(
-              icon: Icons.error_outline,
-              title: 'Unexpected Error',
-              subtitle:
-                  'Please make sure your internet is working properly before reloading',
+      body: RefreshIndicator(
+        onRefresh: () => _setCompareDevicesFuture(true),
+        child: FutureBuilder(
+          future: _compareDevicesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              log(snapshot.error.toString());
+              return NoDataMessage(
+                icon: Icons.error_outline,
+                title: 'Unexpected Error',
+                subtitle:
+                    'Please make sure your internet is working properly before reloading',
+                onRefresh: () => _setCompareDevicesFuture(true),
+              );
+            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return ComparisonScreenSkeleton(
+                deviceCount: widget.comparedDevices?.length ?? 2,
+              );
+            }
+            final comparison = snapshot.data!;
+            _deviceOverviews = comparison.overviews;
+            return CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                DeviceInfoPanel(
+                  overviews: comparison.overviews,
+                  deviceCount: _deviceOverviews.length,
+                ),
+                CompareDeviceSpecs(
+                  features: comparison.features,
+                  deviceCount: _deviceOverviews.length,
+                ),
+              ],
             );
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return ComparisonScreenSkeleton(
-              deviceCount: widget.comparedDevices?.length ?? 2,
-            );
-          }
-          final comparison = snapshot.data!;
-          _deviceOverviews = comparison.overviews;
-          return CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              DeviceInfoPanel(
-                overviews: comparison.overviews,
-                deviceCount: _deviceOverviews.length,
-              ),
-              CompareDeviceSpecs(
-                features: comparison.features,
-                deviceCount: _deviceOverviews.length,
-              ),
-            ],
-          );
-        },
+          },
+        ),
       ),
     );
   }

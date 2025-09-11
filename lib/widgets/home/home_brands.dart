@@ -1,4 +1,3 @@
-import 'package:app/providers/repositories/gsmarena_repo_provider.dart';
 import 'package:app/screens/brand_devices_screen.dart';
 import 'package:app/utils/nav_helper.dart';
 import 'package:app/widgets/home/home_brand_card.dart';
@@ -6,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../../models/brand_model.dart';
 import '../../providers/general/curr_tab_index_provider.dart';
 
 class HomeBrands extends ConsumerWidget {
-  static int itemCount = 10;
-  const HomeBrands({super.key});
+  final List<BrandModel>? brands;
+  final bool isLoading;
+  const HomeBrands({super.key, this.isLoading = false, required this.brands});
 
   void _navigateToBrandProductsScreen(
     BuildContext context, {
@@ -29,41 +30,29 @@ class HomeBrands extends ConsumerWidget {
       alignment: Alignment.center,
       height: 132,
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-      child: FutureBuilder(
-        future: ref.read(gsmarenRepoProvider).getBrandsList(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('An Error Occurred', style: TextStyle(fontSize: 24)),
-            );
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 5,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 8,
+          mainAxisExtent: 50,
+        ),
+        itemCount: brands?.length ?? 10,
+        itemBuilder: (context, index) {
+          final brand = brands?[index];
+
+          if (index + 1 == brands?.length) {
+            return _buildMoreButton(ref, context);
           }
-          final isLoading = snapshot.connectionState == ConnectionState.waiting;
-          final brands = snapshot.data;
-          return GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 8,
-              mainAxisExtent: 50,
+
+          return HomeBrandCard(
+            isLoading: isLoading,
+            brand: brand,
+            onTap: () => _navigateToBrandProductsScreen(
+              context,
+              brandName: brand!.name,
+              link: brand.link,
             ),
-            itemCount: itemCount,
-            itemBuilder: (context, index) {
-              final brand = brands?[index];
-
-              if (index + 1 == itemCount) {
-                return _buildMoreButton(ref, context);
-              }
-
-              return HomeBrandCard(
-                isLoading: isLoading,
-                brand: brand,
-                onTap: () => _navigateToBrandProductsScreen(
-                  context,
-                  brandName: brand!.name,
-                  link: brand.link,
-                ),
-              );
-            },
           );
         },
       ),
